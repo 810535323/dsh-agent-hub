@@ -1,0 +1,6 @@
+- insert:
+    - id: agent-hub
+      name: dsh-agent-hub
+      config:
+        role: setup
+        port: 9444

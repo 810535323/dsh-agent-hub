@@ -1,0 +1,76 @@
+{
+  "name": "dsh-agent-hub",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "微信主控与多设备 Harness 固定会话任务插件 | WeChat orchestration and persistent-session tasks for DeepSeek Harness",
+  "main": "src/plugin.js",
+  "exports": {
+    ".": "./src/plugin.js",
+    "./client": "./src/client.js",
+    "./harness": "./src/harness-plugin.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "agent-hub": "bin/agent-hub.js"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "check": "node scripts/check.js",
+    "pack:release": "node scripts/package.js",
+    "check:public": "node scripts/check-public.js"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "ws": "8.22.0"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "dsh-agent-hub"
+      ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ],
+      "platform": "web"
+    }
+  },
+  "files": [
+    "src",
+    "bin",
+    "assets",
+    "deployment.json",
+    "distribution.json",
+    "cordis.patch.yml",
+    "docs",
+    "README.md",
+    "LICENSE",
+    "README.en.md"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/810535323/dsh-agent-hub.git"
+  },
+  "homepage": "https://github.com/810535323/dsh-agent-hub#readme",
+  "bugs": {
+    "url": "https://github.com/810535323/dsh-agent-hub/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "wechat",
+    "agent",
+    "remote-execution",
+    "multi-device"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "kind": "harness-plugin",
+  "channel": "latest",
+  "runtimes": [
+    "harness"
+  ]
+}

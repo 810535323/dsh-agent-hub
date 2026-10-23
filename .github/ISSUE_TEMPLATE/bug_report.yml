@@ -1,0 +1,21 @@
+name: Bug report / 问题反馈
+description: Report a reproducible plugin problem / 反馈可复现的插件问题
+body:
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment / 环境
+      description: OS, Harness version, Node version and Hub or worker role / 系统、Harness 和 Node 版本、主机或从机角色
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps and expected behavior / 复现步骤与预期行为
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Sanitized diagnostics / 脱敏诊断
+      description: Never include tokens, keys, auth URLs or personal conversations / 不要包含凭据、密钥、鉴权链接或个人对话
