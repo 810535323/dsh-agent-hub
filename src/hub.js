@@ -9,6 +9,7 @@ import { secret, digest, sameSecret, fail, now, requireText } from './util.js'
 import { isLoopback } from './transport.js'
 import { serveRelease } from './releases.js'
 import { ensureTaskNotice } from './reports.js'
+import { CodexRouting } from './codex-routing.js'
 
 async function body(req) {
   const chunks = []; let bytes = 0
@@ -30,6 +31,7 @@ export class Hub {
     this.store = new Store(dbPath); this.adminToken = adminToken; this.host = host; this.port = port
     this.releaseDir = releaseDir
     this.allowInsecure = allowInsecure; this.onMailbox = onMailbox; this.connections = new Map()
+    this.codex = new CodexRouting(this)
     for (const task of this.store.all('tasks').filter((t) => !TERMINAL.has(t.status))) {
       this.store.put('tasks', { ...task, status: 'uncertain', connection_lost: true, reason: 'hub-restarted-awaiting-worker' })
     }
@@ -48,7 +50,7 @@ export class Hub {
     this.timer.unref()
     return this
   }
-  notify() { try { Promise.resolve(this.onMailbox()).catch(() => {}) } catch {} }
+  notify() { try { this.codex.tick(); Promise.resolve(this.onMailbox()).catch(() => {}) } catch {} }
   bindMaster({ session_id, bot_id, target_id }) {
     for (const [k, v] of Object.entries({ session_id, bot_id, target_id })) requireText(v, k, 256)
     return this.store.put('masters', { id: session_id, session_id, bot_id, target_id })
@@ -95,7 +97,8 @@ export class Hub {
     return receipt
   }
   isOnline(id) { const c = this.connections.get(id); return !!c && c.ready && c.ws.readyState === WebSocket.OPEN && Date.now() - c.lastSeen < 45000 }
-  dispatch(masterId, { endpoint_id, prompt }) {
+  dispatch(masterId, input) { return this.codex.dispatch(masterId, input) }
+  dispatchTask(masterId, { endpoint_id, prompt }, { metadata = {}, onPersist } = {}) {
     requireText(prompt, 'prompt', 65536)
     const endpoint = this.store.get('endpoints', endpoint_id)
     const device = endpoint && this.store.get('devices', endpoint.device_id)
@@ -105,16 +108,17 @@ export class Hub {
     const task = {
       id: 'task_' + randomUUID(), attempt_id: randomUUID(), master_id: masterId, device_id: device.id,
       endpoint_id, runtime: endpoint.runtime, session_id: endpoint.session_id, binding_version: endpoint.binding_version,
-      prompt, status: 'dispatched', created_at: now(), business_outcome: 'unassessed',
+      prompt, status: 'dispatched', created_at: now(), business_outcome: 'unassessed', ...metadata,
     }
     this.store.transaction(() => {
       this.store.put('tasks', task)
       this.store.enqueue(frame('task.dispatch', { runtime: task.runtime, session_id: task.session_id, prompt }, taskFields(task)))
+      onPersist?.(task)
     })
     this.flush(this.connections.get(device.id))
     return this.publicTask(task)
   }
-  publicTask(task) { const { prompt, ...safe } = task; return safe }
+  publicTask(task) { const { prompt, request_prompt, ...safe } = task; return safe }
   task(masterId, id) {
     const task = this.store.get('tasks', id)
     if (!task || task.master_id !== masterId) throw fail('unknown-task')
@@ -123,6 +127,7 @@ export class Hub {
   cancel(masterId, id) {
     const task = this.store.get('tasks', id)
     if (!task || task.master_id !== masterId) throw fail('unknown-task')
+    if (task.codex_resolution?.state === 'continued') return this.cancel(masterId, task.codex_resolution.task_id)
     if (TERMINAL.has(task.status)) return this.publicTask(task)
     task.cancel_requested = true
     this.store.transaction(() => { this.store.put('tasks', task); this.store.enqueue(frame('task.cancel', {}, taskFields(task))) })
@@ -224,7 +229,7 @@ export class Hub {
         }
       } else if (m.type === 'task.result') {
         if (!TERMINAL.has(task.status)) {
-          const result = resultOnly(m.payload)
+          const result = this.codex.normalizeResult(task, resultOnly(m.payload))
           result.artifacts = result.artifacts.map((a) => ({ ...a, device_id: task.device_id }))
           const finished = { ...task, status: result.status, result, result_message_id: m.message_id, finished_at: now(), connection_lost: false }
           this.store.put('tasks', finished)

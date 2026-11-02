@@ -19,6 +19,7 @@ flowchart LR
 - 同一会话串行、不同设备并行；断线后对账，持久回执确认后才停止重传。
 - 执行结果、主机 AI 总结和微信投递分别保存；主会话忙碌时持久排队，空闲后总结并推送。
 - 从机保留自己的模型、凭据和权限；需要 Codex 时由对应机器的 Harness 通过 sub agent 调用。
+- Codex 默认独立单任务并保存对话；继续旧任务时先搜索相关任务和原生会话，忙碌不重复派发，唯一空闲才续写。
 
 ## 快速开始
 
@@ -51,6 +52,7 @@ IP 直连支持 HTTPS/WSS，不需要域名；证书 SAN 必须匹配该 IP。�
 - [安装、配对与解绑](docs/INSTALL.md) · [Installation](docs/INSTALL.en.md)
 - [架构、恢复与隐私](docs/ARCHITECTURE.md) · [Architecture](docs/ARCHITECTURE.en.md)
 - [部署与迁移](docs/DEPLOY.md) · [Deployment](docs/DEPLOY.en.md)
+- [Codex 调用选择与会话续写](docs/CODEX.md) · [Codex routing](docs/CODEX.en.md)
 - [开发与 DSH 插件规范](CONTRIBUTING.md) · [安全报告](SECURITY.md)
 
 ```sh

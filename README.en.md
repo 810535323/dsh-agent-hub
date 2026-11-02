@@ -1,5 +1,7 @@
 # Agent Hub for DeepSeek Harness
 
+Codex calls default to independent tasks in saved conversations. Continuing previous or ongoing work first searches related tasks and native sessions, avoiding duplicate execution. See [Codex routing and session continuation](docs/CODEX.en.md) ([中文](docs/CODEX.md)).
+
 [简体中文](README.md) | English
 
 WeChat orchestration and persistent-session tasks across multiple devices. A main Agent dispatches work to each device's DeepSeek Harness Session. Results are stored durably; the main AI summarizes them first, and the plugin sends one consolidated report to WeChat.

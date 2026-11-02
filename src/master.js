@@ -21,6 +21,7 @@ export class MasterCoordinator {
   }
   tick() {
     if (this.closed) return
+    this.hub.codex.tick()
     this.repairBacklog()
     // Only a durably saved main-Agent summary can enter the WeChat delivery queue.
     for (const notification of this.hub.store.all('notifications')) {
