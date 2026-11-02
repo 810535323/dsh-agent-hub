@@ -2,7 +2,7 @@
 
 [简体中文](ARCHITECTURE.md)
 
-WeChat ↔ DSH-IM ↔ main Harness Agent ↔ Hub ↔ outbound WSS ↔ worker Harness plugin ↔ persistent Session → optional local sub agent, including Codex. After persisting a result, the plugin independently sends its completion notice to the bound WeChat target. The main Agent consumes the durable report queue for detailed follow-up.
+WeChat ↔ DSH-IM ↔ main Harness Agent ↔ Hub ↔ outbound WSS ↔ worker Harness plugin ↔ persistent Session → optional local sub agent, including Codex. Results are first queued durably. Once the main Session is idle, the main AI summarizes them and the plugin sends one consolidated WeChat report.
 
 ## Execution and recovery
 
@@ -14,11 +14,11 @@ Both sides use SQLite transactions for tasks, messages and receipts. Explicit du
 
 ## Results, consumption and delivery
 
-A transaction commits the task result, persistent main-Agent mailbox entry, independent WeChat notice and worker-result receipt before the Hub acknowledges the worker. The notice includes task identity, status, a final-answer excerpt and verification information; sending it invokes no model and waits for no Session turn.
+A transaction commits the result, main-Agent mailbox entry, an awaiting_summary notification and worker-result receipt before acknowledging the worker. No worker excerpt is sent at this stage. An idle-only plugin-origin turn requests the main AI summary, correlated by task, revision, message and native turn. A second transaction saves the summary, consumption receipt and outgoing text before WeChat delivery.
 
 WeChat delivery has its own durable receipt. A crash during sending or an ambiguous response leaves `unknown` status for investigation. An explicit failure may be retried within the configured bound. Changing a WeChat binding blocks old notices rather than redirecting them to a different target.
 
-On an idle main Session, the plugin enqueues only a reminder to query pending results. Enqueue receipt, another model response and successful WeChat delivery do not consume a report. The Agent must acknowledge the exact `report_id` and `revision`. Acknowledgements are idempotent, and an old revision cannot consume a newer result. Unread reports and delivery problems remain independently visible after restart.
+The plugin no longer enqueues a second result reminder. Failed or empty summaries stay visible as needs_attention without falling back to raw answers. Restart recovery reconciles the exact native summary turn before any retry. Delivery retries reuse a saved summary without another AI call. Already sent or ambiguous legacy notices remain unchanged; unsent raw notices migrate into the summary queue. A newer revision supersedes an unsent old summary. Manual read acknowledgements cannot bypass the summary stage.
 
 ## Permissions and privacy
 
@@ -36,7 +36,7 @@ Protocol version fields and legacy routes support outstanding receipts and histo
 | `hub-runtime.js` | Hub startup, main-Agent tools and prompt registration |
 | `hub.js`, `worker.js`, `store.js` | Protocol, task state, transactional persistence and receipts |
 | `harness-host.js`, `harness-bridge.js` | Local native Session integration and worker transport |
-| `report-queue.js`, `reports.js` | Durable unread results, revision acknowledgements and reminders |
+| `report-queue.js`, `reports.js` | Durable unread results and revision acknowledgements |
 | `master.js` | Independent WeChat delivery and real user interactions |
 | `client.js`, `management.js` | Shared-module client entry and authenticated management surface |
 

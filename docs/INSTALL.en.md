@@ -43,7 +43,7 @@ The plugin connects when Harness opens and stops when Harness exits. No separate
 
 ## Results and optional Codex work
 
-The Hub's pending-results panel shows unread task results and independent WeChat delivery status. Completion notices do not wait for the current main-Agent turn. The main Agent reads `agent_hub_pending_reports` and explicitly acknowledges revisions with `agent_hub_ack_reports`. Ambiguous delivery is retained for investigation and is not automatically retried.
+The pending-results panel shows waiting for main-AI summary, summarizing, summary failure and independent WeChat delivery states. Results are saved first and wait while the main Session is busy. The plugin sends only the main AI’s completed summary. Delivery retries reuse that saved summary; ambiguous sends are retained without automatic retry. Updating the Hub alone enables this behavior; the worker protocol and existing pairings are unchanged.
 
 For Codex work, ask the remote Harness to invoke its locally configured Codex sub agent, wait for it and summarize verified evidence. This plugin does not install Codex, manage its Threads or approve its operations. Missing local sub-agent support must be reported honestly.
 

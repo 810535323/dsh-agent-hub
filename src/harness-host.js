@@ -79,6 +79,7 @@ export class HarnessHost {
   }
   async run(task, hooks = {}, options = {}) {
     const agent = await this.agent(task.session_id)
+    if (options.idleOnly && (agent.status === 'running' || this.active.has(task.session_id))) return { status: 'deferred', reason: 'master-busy' }
     if (this.active.has(task.session_id)) throw fail('harness-session-busy')
     const guidance = task.runtime === 'harness' ? '\n\n【执行约定】本任务由当前 Harness 固定会话负责。若用户要求使用 Codex，通过本机配置的 sub agent 调用，等待其明确完成并核查结果后再给出最终答复。若本机没有可用的 Codex sub agent 或调用工具，请明确报告阻塞原因，不要伪称已调用。遵守本机权限和用户审批；最终答复包含结论、验证摘要和本机产物路径，勿附完整对话、思考或原始命令输出。' : ''
     const prompt = `【Agent Hub task=${task.id}】\n${task.prompt}${guidance}`
@@ -90,6 +91,10 @@ export class HarnessHost {
     try {
       // A stable message id is persisted by the caller before enqueue. A retry first inspects history.
       await options.beforeSubmit?.(entry.messageId)
+      if (options.idleOnly && agent.status === 'running') {
+        this.active.delete(task.session_id)
+        return { status: 'deferred', reason: 'master-busy' }
+      }
       agent.followup(message)
       return await done
     } catch (e) { if (this.active.get(task.session_id) === entry) this.active.delete(task.session_id); throw e }

@@ -33,7 +33,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-harness.ps
 
 插件随 Harness 开启自动启动并恢复连接，随 Harness 退出停止。无需独立后台服务或登录启动脚本。首次开启软件后才能接收任务。
 
-主机页面的“待处理任务结果”显示主 Agent 尚未确认的结果及微信投递状态。执行结束通知由插件独立发送，主会话忙碌不会阻塞。主 Agent 可使用 `agent_hub_pending_reports` 补查，阅读后用 `agent_hub_ack_reports` 确认；发送结果待核查的通知不会盲目重发。
+主机页面的“待处理任务结果”显示等待总结、总结中、总结失败待核查及微信投递状态。结果先落盘；主会话忙碌时排队，空闲后由主机 AI 总结，插件只推送总结，不先发从机原文。总结与投递分别持久保存；投递重试不重复总结，发送结果不明时不盲目重发。主 Agent 可用 `agent_hub_pending_reports` 补查。仅升级主机即可启用此行为，从机协议未变，无需重新配对。
 
 需要 Codex 时，在任务中明确要求从机 Harness 使用本机 Codex sub agent，等待其结束、核查结果并汇总。调用能力、模型、认证和权限由对应机器的 Harness 本地配置负责；插件不安装 Codex、不维护 Codex Thread、不代替用户批准。若本机尚无 Codex sub agent 或调用工具，应先配置本地能力；插件不会把纯 Harness 执行误报为 Codex 执行。
 

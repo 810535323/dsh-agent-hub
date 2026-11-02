@@ -10,7 +10,7 @@ import { noticeId } from '../src/reports.js'
 import { writeConfig } from '../src/util.js'
 import { temp, until, FakeHarnessContext, autoReply } from './helpers.js'
 
-test('full Harness route: Worker final result -> independent WeChat notice -> persistent main-Agent consumption', async (t) => {
+test('full Harness route: Worker result -> main-Agent summary -> one WeChat report with durable receipt', async (t) => {
   const dir = temp(t); const hub = await new Hub({ dbPath: join(dir, 'hub.sqlite'), adminToken: 'x', port: 0 }).listen()
   const mainCtx = new FakeHarnessContext(); autoReply(mainCtx, '主 Agent 最终汇报')
   const main = mainCtx.makeSession('main'); const sent = []
@@ -29,8 +29,10 @@ test('full Harness route: Worker final result -> independent WeChat notice -> pe
     const task = hub.dispatch('main', { endpoint_id: device.device_id + ':harness', prompt: '执行任务' })
     await until(() => hub.store.get('notifications', noticeId(hub.store.get('tasks', task.id)))?.state === 'sent')
     assert.equal(hub.task('main', task.id).result.answer, '从机最终答复')
-    assert.equal(sent.length, 1); assert.equal(sent[0][0], 'wx'); assert.equal(sent[0][1], 'person'); assert.match(sent[0][2], /从机最终答复/)
-    assert.equal(hub.store.get('mailbox', task.id).state, 'pending'); coordinator.acknowledgeReports(main.id, coordinator.pendingReports(main.id).map(({report_id,revision})=>({report_id,revision}))); assert.equal(hub.store.get('mailbox', task.id).state, 'consumed')
+    assert.equal(sent.length, 1); assert.equal(sent[0][0], 'wx'); assert.equal(sent[0][1], 'person'); assert.match(sent[0][2], /主 Agent 最终汇报/)
+    assert.equal(sent[0][2].includes('从机最终答复'), false)
+    assert.equal(hub.store.get('mailbox', task.id).state, 'consumed')
+    assert.equal(hub.store.all('delivery_receipts').length, 1)
   } finally {
     coordinator.close(); for (const d of slaveCtx.disposers) await d(); await worker.close(); await hub.close()
   }

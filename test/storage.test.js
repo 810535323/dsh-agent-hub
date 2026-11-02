@@ -54,7 +54,7 @@ test('completion notification is committed with the result and receipt before Wo
     hub.store.db.exec('DROP TRIGGER fail_notice')
     hub.handleMessage(c, message); hub.handleMessage(c, message)
     assert.equal(hub.store.all('notifications').length, 1)
-    assert.equal(hub.store.all('notifications')[0].state, 'pending')
+    assert.equal(hub.store.all('notifications')[0].state, 'awaiting_summary')
     assert.equal(replies.every(r => r.payload.persisted === true), true)
   } finally { hub.store.close() }
 })

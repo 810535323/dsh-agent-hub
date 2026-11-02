@@ -57,7 +57,7 @@ try {
   await until(() => field('微信目标', 'wx_smoke/ui_target'))
   await until(() => evaluate('!![...document.querySelectorAll("button")].find(b=>b.textContent==="保存主会话"&&!b.disabled)'))
   await click('保存主会话'); await until(() => evaluate('document.body.innerText.includes("微信主会话已绑定")'))
-  await until(() => evaluate('document.querySelector("[data-testid=pending-reports]")?.innerText.includes("task-ui-result")&&document.querySelector("[data-testid=pending-reports]").innerText.includes("发送结果待核查")'))
+  await until(() => evaluate('document.querySelector("[data-testid=pending-reports]")?.innerText.includes("task-ui-result")&&document.querySelector("[data-testid=pending-reports]").innerText.includes("等待主机 AI 总结")'))
   await click('生成配对码'); await until(() => evaluate('document.querySelector("[data-testid=pair-code]")?.textContent.length===12'))
   const demoCode = await evaluate('document.querySelector("[data-testid=pair-code]").textContent')
   await pairWorker(join(home, 'demo-worker'), { hub: boot.plugin_hub, code: demoCode, name: 'UI 验证从机', cwd: home, runtimes: ['harness'], local_port: 0 })

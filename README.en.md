@@ -2,7 +2,7 @@
 
 [简体中文](README.md) | English
 
-WeChat orchestration and persistent-session tasks across multiple devices. A main Agent dispatches work to each device's DeepSeek Harness Session. Results are stored durably; the plugin sends completion notices directly to WeChat, and the main Agent can provide detailed follow-up reports.
+WeChat orchestration and persistent-session tasks across multiple devices. A main Agent dispatches work to each device's DeepSeek Harness Session. Results are stored durably; the main AI summarizes them first, and the plugin sends one consolidated report to WeChat.
 
 ```mermaid
 flowchart LR
@@ -17,7 +17,7 @@ flowchart LR
 - One Harness plugin with Hub and worker roles; starts and stops with Harness.
 - Settings page for pairing codes, device status, communication checks, Session binding and unpairing.
 - Serial execution per Session and concurrent execution across devices, with durable receipts and reconnect reconciliation.
-- Separate records for result receipt, main-Agent consumption and WeChat delivery; a busy main Session cannot block completion notices.
+- Separate records for result receipt, main-AI summarization and WeChat delivery; results wait durably while the main Session is busy.
 - Device-local models, credentials and permissions. Optional Codex work is delegated by that device's Harness through a local sub agent.
 
 ## Quick start
@@ -42,7 +42,7 @@ Direct IP connections use HTTPS/WSS without a domain; the certificate SAN must m
 
 The main Agent uses `agent_hub_devices`, `agent_hub_dispatch`, `agent_hub_task` and `agent_hub_cancel`. Dispatch returns a task ID immediately and rejects offline devices. A dedicated Session is created once, reused across tasks and restarts, and replaced only after confirmed absence.
 
-When results arrive, the plugin sends a WeChat completion notice independently of the current main-Agent turn. Unread results remain visible on the settings page. The main Agent reads them with `agent_hub_pending_reports`, then acknowledges the exact revision with `agent_hub_ack_reports`. Ambiguous WeChat delivery remains pending investigation and is not blindly resent.
+Results remain in a durable queue until the main Session becomes idle. The plugin requests a summary for the exact task and result revision, saves the main AI’s completed answer, then sends one consolidated WeChat report. It never sends the worker answer first. An unavailable main Session or failed summary leaves the report visible for investigation. Delivery retries reuse the saved summary; ambiguous delivery is not blindly retried. The main Agent can still query `agent_hub_pending_reports` for follow-up.
 
 `completed` means the native turn ended; evidence determines whether the user's goal was achieved. Results contain the final answer, status, verification summary, exit codes and device-local artifact references. The protocol does not automatically synchronize full conversations, reasoning or raw command output, and does not upload files. Prompts and final answers can still contain information intentionally supplied by users.
 
